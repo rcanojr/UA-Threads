@@ -154,8 +154,12 @@ int k_spawn(char* name, int (*entryPoint)(void *), void* arg, int stacksize, int
 
     if (!isWatchdogName(name))
     {
-        runningProcess = pNewProc;
-        entryPoint(arg);
+    Process* saved = runningProcess;
+    runningProcess = pNewProc;
+
+    entryPoint(arg);
+
+    runningProcess = saved;
     }
     
     return pNewProc->pid;
@@ -204,6 +208,8 @@ static int launch(void *args)
 int k_wait(int* code)
 {
     while (!gChildExited)
+    {
+    }
 
     if (code != NULL)
     {
