@@ -171,22 +171,12 @@ int k_spawn(char* name, int (*entryPoint)(void*), void* arg, int stacksize, int 
 static int launch(void* args)
 {
     Process* p = (Process*)args;
-    if (p == NULL)
-    {
-        stop(1);
-    }
-
-    runningProcess = p;
 
     DebugConsole("launch(): started: %s\n", runningProcess->name);
 
     /* Enable interrupts */
-    int rc = runningProcess->entryPoint((void*)runningProcess->name);
     /* Call the function passed to spawn and capture its return value */
     DebugConsole("Process %d returned to launch\n", runningProcess->pid);
-
-    k_exit(rc);
-
     /* Stop the process gracefully */
     stop(1);
     return 0;
