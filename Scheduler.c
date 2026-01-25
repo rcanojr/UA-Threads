@@ -7,7 +7,7 @@
 #include "Processes.h"
 
 Process processTable[MAX_PROCESSES];
-Process *runningProcess = NULL;
+Process* runningProcess = NULL;
 int nextPid = 1;
 int debugFlag = 1;
 
@@ -18,7 +18,7 @@ static int gChildPid = -1;
 static int watchdog(char*);
 static inline void disableInterrupts();
 void dispatcher();
-static int launch(void *);
+static int launch(void*);
 static void check_deadlock();
 static void DebugConsole(char* format, ...);
 
@@ -36,13 +36,13 @@ check_io_function check_io;
    Purpose - This is the first function called by THREADS on startup.
 
              The function must setup the OS scheduler and primitive
-             functionality and then spawn the first two processes.  
-             
-             The first two process are the watchdog process 
-             and the startup process SchedulerEntryPoint.  
-             
+             functionality and then spawn the first two processes.
+
+             The first two process are the watchdog process
+             and the startup process SchedulerEntryPoint.
+
              The statup process is used to initialize additional layers
-             of the OS.  It is also used for testing the scheduler 
+             of the OS.  It is also used for testing the scheduler
              functions.
 
    Parameters - Arguments *pArgs - these arguments are unused at this time.
@@ -52,7 +52,7 @@ check_io_function check_io;
    Side Effects - The effects of this function is the launching of the kernel.
 
  *************************************************************************/
-int bootstrap(void *pArgs)
+int bootstrap(void* pArgs)
 {
     int result; /* value returned by call to spawn() */
 
@@ -77,7 +77,7 @@ int bootstrap(void *pArgs)
     result = k_spawn("Scheduler", SchedulerEntryPoint, NULL, 2 * THREADS_MIN_STACK_SIZE, HIGHEST_PRIORITY);
     if (result < 0)
     {
-        console_output(debugFlag,"Scheduler(): spawn for SchedulerEntryPoint returned an error (%d), stopping...\n", result);
+        console_output(debugFlag, "Scheduler(): spawn for SchedulerEntryPoint returned an error (%d), stopping...\n", result);
         stop(1);
     }
 
@@ -86,7 +86,8 @@ int bootstrap(void *pArgs)
     /* This should never return since we are not a real process. */
 
     /*stop(-3); */
-    
+    dispatcher();
+    stop(1);
     return 0;
 
 }
@@ -95,7 +96,7 @@ int bootstrap(void *pArgs)
    k_spawn()
 
    Purpose - spawns a new process.
-   
+
              Finds an empty entry in the process table and initializes
              information of the process.  Updates information in the
              parent process to reflect this child process creation.
@@ -103,11 +104,11 @@ int bootstrap(void *pArgs)
    Parameters - the process's entry point function, the stack size, and
                 the process's priority.
 
-   Returns - The Process ID (pid) of the new child process 
+   Returns - The Process ID (pid) of the new child process
              The function must return if the process cannot be created.
 
 ************************************************************************ */
-int k_spawn(char* name, int (*entryPoint)(void *), void* arg, int stacksize, int priority)
+int k_spawn(char* name, int (*entryPoint)(void*), void* arg, int stacksize, int priority)
 {
     int proc_slot;
     struct _process* pNewProc;
@@ -125,12 +126,12 @@ int k_spawn(char* name, int (*entryPoint)(void *), void* arg, int stacksize, int
     if (strlen(name) >= (MAXNAME - 1))
     {
         console_output(debugFlag, "spawn(): Process name is too long.  Halting...\n");
-        stop( 1);
+        stop(1);
     }
 
 
     /* Find an empty slot in the process table */
-    
+
     proc_slot = 1;  // just use 1 for now!
     pNewProc = &processTable[proc_slot];
 
@@ -152,16 +153,6 @@ int k_spawn(char* name, int (*entryPoint)(void *), void* arg, int stacksize, int
     */
     pNewProc->context = context_initialize(launch, stacksize, arg);
 
-    if (!isWatchdogName(name))
-    {
-    Process* saved = runningProcess;
-    runningProcess = pNewProc;
-
-    entryPoint(arg);
-
-    runningProcess = saved;
-    }
-    
     return pNewProc->pid;
 
 
@@ -171,26 +162,35 @@ int k_spawn(char* name, int (*entryPoint)(void *), void* arg, int stacksize, int
    Name - launch
 
    Purpose - Utility function that makes sure the environment is ready,
-             such as enabling interrupts, for the new process.  
+             such as enabling interrupts, for the new process.
 
    Parameters - none
 
    Returns - nothing
 *************************************************************************/
-static int launch(void *args)
+static int launch(void* args)
 {
+    Process* p = (Process*)args;
+    if (p == NULL)
+    {
+        stop(1);
+    }
+
+    runningProcess = p;
 
     DebugConsole("launch(): started: %s\n", runningProcess->name);
 
     /* Enable interrupts */
-
+    int rc = runningProcess->entryPoint((void*)runningProcess->name);
     /* Call the function passed to spawn and capture its return value */
     DebugConsole("Process %d returned to launch\n", runningProcess->pid);
 
-    /* Stop the process gracefully */
+    k_exit(rc);
 
+    /* Stop the process gracefully */
+    stop(1);
     return 0;
-} 
+}
 
 /**************************************************************************
    Name - k_wait
@@ -198,7 +198,7 @@ static int launch(void *args)
    Purpose - Wait for a child process to quit.  Return right away if
              a child has already quit.
 
-   Parameters - Output parameter for the child's exit code. 
+   Parameters - Output parameter for the child's exit code.
 
    Returns - the pid of the quitting child, or
         -4 if the process has no children
@@ -217,18 +217,18 @@ int k_wait(int* code)
     }
     return gChildPid;
 
-} 
+}
 
 /**************************************************************************
    Name - k_exit
 
-   Purpose - Exits a process and coordinates with the parent for cleanup 
+   Purpose - Exits a process and coordinates with the parent for cleanup
              and return of the exit code.
 
    Parameters - the code to return to the grieving parent
 
    Returns - nothing
-   
+
 *************************************************************************/
 void k_exit(int code)
 {
@@ -237,7 +237,7 @@ void k_exit(int code)
         stop(code);
         return;
     }
-    
+
     gChildExitCode = code;
     gChildExited = 1;
 
@@ -332,14 +332,26 @@ void display_process_table(void)
 *************************************************************************/
 void dispatcher(void)
 {
-    return;
-    
-    Process *nextProcess = NULL;
+    Process* next = NULL;
 
-    /* IMPORTANT: context switch enables interrupts. */
-    context_switch(nextProcess->context);
+    for (int i = 0; i < MAX_PROCESSES; i++)
+        if (processTable[i].pid != 0 && strcmp(processTable[i].name, "Scheduler") == 0)
+            next = &processTable[i];
+  
+    if (!next)
+        for (int i = 0; i < MAX_PROCESSES; i++)
+            if (processTable[i].pid != 0 && processTable[i].context != NULL)
+            {
+                next = &processTable[i]; break;
+            }
 
-} 
+    if (!next) stop(0);
+
+    runningProcess = next;
+    context_switch(runningProcess->context);
+    stop(1);
+
+}
 
 /**************************************************************************
    Name - watchdog
@@ -360,7 +372,7 @@ static int watchdog(char* dummy)
         check_deadlock();
     }
     return 0;
-} 
+}
 
 /* check to determine if deadlock has occurred... */
 static void check_deadlock()
@@ -380,7 +392,7 @@ static inline void disableInterrupts(void)
 
     psr = psr & ~PSR_INTERRUPTS;
 
-    set_psr( psr);
+    set_psr(psr);
 
 } /* disableInterrupts */
 
