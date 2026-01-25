@@ -140,7 +140,7 @@ int k_spawn(char* name, int (*entryPoint)(void*), void* arg, int stacksize, int 
 
     pNewProc->pid = nextPid++;
     gChildPid = pNewProc->pid;
-
+    pNewProc->entryPoint = entryPoint;
     /* If there is a parent process,add this to the list of children. */
     if (runningProcess != NULL)
     {
