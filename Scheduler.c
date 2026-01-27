@@ -333,25 +333,10 @@ void display_process_table(void)
 *************************************************************************/
 void dispatcher(void)
 {
-    Process* next = NULL;
+    Process *nextProcess = NULL;
 
-    for (int i = 0; i < MAX_PROCESSES; i++)
-        if (processTable[i].pid != 0 && strcmp(processTable[i].name, "Scheduler") == 0)
-            next = &processTable[i];
-  
-    if (!next)
-        for (int i = 0; i < MAX_PROCESSES; i++)
-            if (processTable[i].pid != 0 && processTable[i].context != NULL)
-            {
-                next = &processTable[i]; break;
-            }
-
-    if (!next) stop(0);
-
-    runningProcess = next;
-    context_switch(runningProcess->context);
-    stop(1);
-
+ /* IMPORTANT: context switch enables interrupts. */
+ context_switch(nextProcess->context);
 }
 
 /**************************************************************************
