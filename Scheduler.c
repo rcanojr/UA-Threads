@@ -86,7 +86,6 @@ int bootstrap(void* pArgs)
     /* This should never return since we are not a real process. */
 
     stop(-3);
-    //dispatcher();
     return 0;
 
 }
@@ -128,8 +127,17 @@ int k_spawn(char* name, int (*entryPoint)(void*), void* arg, int stacksize, int 
         stop(1);
     }
 
+    struct _process* pNewProc = malloc(sizeof(struct _process));
+    if ((priority >= 0) && (priority <= 5)){
+        pNewProc->priority = priority;
+    }
+    else {
+        return -3;
+    }
 
     /* Find an empty slot in the process table */
+    // We need to iterate over the processTable and check process->Status flags for QUIT
+    // else, return -4 that process table is full
 
     proc_slot = 1;  // just use 1 for now!
     pNewProc = &processTable[proc_slot];
@@ -156,7 +164,6 @@ int k_spawn(char* name, int (*entryPoint)(void*), void* arg, int stacksize, int 
     if (!isWatchdogName(name)) {
         Process* saved = runningProcess;
         runningProcess = pNewProc;
-
         entryPoint(arg);
         runningProcess = saved;
     }
@@ -179,7 +186,7 @@ int k_spawn(char* name, int (*entryPoint)(void*), void* arg, int stacksize, int 
 *************************************************************************/
 static int launch(void* args)
 {
-    Process* p = (Process*)args;
+    //Process* p = (Process*)args;
 
     DebugConsole("launch(): started: %s\n", runningProcess->name);
 
@@ -231,15 +238,10 @@ int k_wait(int* code)
 *************************************************************************/
 void k_exit(int code)
 {
-    if (runningProcess && strcmp(runningProcess->name, "Scheduler") == 0)
-    {
-        stop(code);
-        return;
-    }
 
     gChildExitCode = code;
     gChildExited = 1;
-
+    return;
     //testing for purposes
 
 }
