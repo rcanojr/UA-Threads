@@ -1,4 +1,11 @@
 
+/*
+    CYBV 489
+    Professor: Li Xu
+    Contributors: Jake Newton, Jose Aguilar
+    Last Updated: 1/29/2026
+*/
+
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
