@@ -1,9 +1,9 @@
 
 /*
     CYBV 489
+    Group 10: Raul Cano & Jovanni Blanco
     Professor: Li Xu
-    Contributors: Jake Newton, Jose Aguilar
-    Last Updated: 1/29/2026
+    Last Update: 1/29/2026
 */
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -90,7 +90,7 @@ int bootstrap(void* pArgs)
 
     /* Initialized and ready to go!! */
     console_output(debugFlag, "All processes completed.\n");
-    /* This should never return since we are not a real process. */
+    // not a real process, wont return any debug flags
 
     
     return 0;
@@ -134,20 +134,20 @@ int k_spawn(char* name, int (*entryPoint)(void*), void* arg, int stacksize, int 
         stop(1);
     }
 
-    if ((priority >= 0) && (priority <= 5)){
-        pNewProc->priority = &priority;
+    if (!(priority < 0 || priority > 5)) //checks if priority is between 0 and 5 
+    {
+        pNewProc->priority = &priority; //assign address of priority variable to pNewProc priority field
     }
-    else {
-        return -3;
+    else 
+    {
+        return -3; //if priority is not between 0 and 5 return -3
     }
 
 
-    pNewProc->status = "Ready";
-    pNewProc->startArgs[0] = &arg;
+    pNewProc -> status = "Ready...";
+    pNewProc -> startArgs[0] = &arg;
 
     /* Find an empty slot in the process table */
-    // We need to iterate over the processTable and check process->Status flags for QUIT
-    // else, return -4 that process table is full
 
     proc_slot = 1;  // just use 1 for now!
     pNewProc = &processTable[proc_slot];
@@ -155,9 +155,10 @@ int k_spawn(char* name, int (*entryPoint)(void*), void* arg, int stacksize, int 
     /* Setup the entry in the process table. */
     strcpy(pNewProc->name, name);
 
-    pNewProc->pid = nextPid++;
-    gChildPid = pNewProc->pid;
-    pNewProc->entryPoint = entryPoint;
+    pNewProc -> pid = gChildPid = nextPid++; //generate a new PID and set pNewProc and gChildPid to it
+    pNewProc -> entryPoint = entryPoint; //assign entry point with new address
+
+
     /* If there is a parent process,add this to the list of children. */
     if (runningProcess != NULL)
     {
@@ -171,11 +172,12 @@ int k_spawn(char* name, int (*entryPoint)(void*), void* arg, int stacksize, int 
     
     pNewProc->context = context_initialize(launch, stacksize, arg);
 
-    if (!isWatchdogName(name)) {
-        Process* saved = runningProcess;
-        runningProcess = pNewProc;
-        entryPoint(arg);
-        runningProcess = saved;
+    if (!isWatchdogName(name)) //checks if watchdog process is being created
+    {
+        Process* psave = runningProcess; // saves running process in psave variable
+        runningProcess = pNewProc; //points to pNewProc treating the new process as current running process
+        entryPoint(arg); //calls run process
+        runningProcess = psave; //after function completes, runningProcess points to psave variable
     }
 
 
@@ -223,16 +225,18 @@ static int launch(void* args)
 ************************************************************************ */
 int k_wait(int* code)
 {
-    while (!gChildExited)
+    while (!gChildExited) //busy wait loop for created child process
     {
     }
-    if (code != NULL)
+
+    if (code != NULL) //if the process is Null, store exit code
     {
         *code = gChildExitCode;
     }
-    return gChildPid;
 
+    return gChildPid; //return PID of terminated child process
 }
+
 
 /**************************************************************************
    Name - k_exit
@@ -247,10 +251,8 @@ int k_wait(int* code)
 *************************************************************************/
 void k_exit(int code)
 {
-    gChildExitCode = code;
-    gChildExited = 1;
-    
-    //testing for purposes
+    gChildExitCode = code; //returns exit code value on exit
+    gChildExited = 1; //indicates completion
 
 }
 
