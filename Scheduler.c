@@ -343,10 +343,10 @@ void display_process_table(void)
 *************************************************************************/
 void dispatcher(void)
 {
-    //Process *nextProcess = NULL;
+    Process *nextProcess = NULL;
 
  /* IMPORTANT: context switch enables interrupts. */
- //context_switch(nextProcess->context);
+    context_switch(nextProcess->context);
 }
 
 /**************************************************************************
@@ -420,7 +420,7 @@ int check_io_scheduler()
 {
     return false;
 }
-
+/*This returns 1(true) if name is "watchdog", if not it returns 0.*/
 static int isWatchdogName(const char* name)
 {
     return (name != NULL && strcmp(name, "watchdog") == 0);
